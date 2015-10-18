@@ -1,17 +1,17 @@
 #!/usr/bin/python
 
+import sys
 import irtk
 import heartdetector
 import numpy as np
 from glob import glob
 
-import sys
 import os
 import argparse
 from time import time
 
 def get_ED_ES(patient_id):
-    f = "/vol/biomedic/users/kpk09/DATASETS/CETUS_data/Testing/Images/"+patient_id+"/"+patient_id+"_ED_ES_time.txt"
+    f = "Images/"+patient_id+"/"+patient_id+"_ED_ES_time.txt"
     f = open(f,"rb")
     res = []
     for line in f:
@@ -46,7 +46,7 @@ if not args.time:
 if not os.path.exists("predictions/"+args.patient_id):
     os.makedirs("predictions/"+args.patient_id)
 
-all_frames = sorted(glob("/vol/biomedic/users/kpk09/DATASETS/CETUS_data/Testing/standard_input_data/"+args.patient_id+"_frame*.nii.gz"))
+all_frames = sorted(glob("denoised/"+args.patient_id+"_frame*.nii.gz"))
 
 tmp = irtk.imread(all_frames[0])
 mask = irtk.zeros(tmp.get_header(),dtype='float32')
@@ -57,11 +57,11 @@ for f in all_frames:
 
 mask = (mask > 0).astype('uint8')
 
-if args.frame is not None:
-    all_frames = [all_frames[args.frame]]
-elif not args.all:
-    ED,ES = get_ED_ES(args.patient_id)
-    all_frames = [all_frames[ED],all_frames[ES]]
+# if args.frame is not None:
+#     all_frames = [all_frames[args.frame]]
+# elif not args.all:
+#     ED,ES = get_ED_ES(args.patient_id)
+#     all_frames = [all_frames[ED],all_frames[ES]]
     
 for f in all_frames:
     if "_seg" in f:

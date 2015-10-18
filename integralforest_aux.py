@@ -13,15 +13,12 @@ import joblib
 from joblib import Parallel, delayed
 
 import irtk
-from irtk.ext.slic import slic
-from irtk.ext.FitEllipsoid import get_voxels
 
 __all__ = [ "world_align",
             "edt",
             "gdt",
             "background_distance",
-            "get_background",
-            "slic_feature" ]
+            "get_background" ]
 
 def world_align(img,pixelSize=[3,3,3,1],interpolation='linear'):
     x_min, y_min, z_min, x_max, y_max, z_max = img.wbox()
@@ -127,81 +124,6 @@ def background_distance(img,metric='geodesic',includeEDT=True):
     
     return irtk.Image(distanceMap,img.get_header())
 
-def get_entropy(img):
-    """
-    http://stackoverflow.com/questions/16647116/faster-way-to-analyze-each-sub-window-in-an-image
-    """
-    hist = cv2.calcHist([img],[0],None,[256],[0,256])
-    hist = hist.ravel()/hist.sum()
-    logs = np.log2(hist+0.00001)
-    entropy = -1 * (hist*logs).sum()
-    return entropy
-
-def slic_feature(img, size=300, compactness=10, sigma=2.0, feature="entropy"):
-    #img = img.saturate(0.01,0.9).rescale().astype("float32")
-    labels = slic( img.astype("float32").gaussianBlurring(sigma),
-                   size=size,
-                   compactness=compactness )
-    max_label = labels.max()
-    voxels = get_voxels(labels,max_label)
-    res = irtk.zeros(img.get_header(),dtype='float32')
-    if feature == "entropy":
-        img = img.rescale().astype('uint8')
-        for l in xrange(max_label+1):
-            if voxels[l].shape[0] == 0:
-                continue
-            values = img[voxels[l][:,0],
-                         voxels[l][:,1],
-                         voxels[l][:,2]]
-            vmax = values.max()
-            if vmax == 0:
-                continue
-            vmin = values.min()
-            if vmax == vmin:
-                continue
-            res[voxels[l][:,0],
-                voxels[l][:,1],
-                voxels[l][:,2]] = get_entropy(values)
-    elif feature == "std":
-        for l in xrange(max_label+1):
-            if voxels[l].shape[0] == 0:
-                continue
-            res[voxels[l][:,0],
-                voxels[l][:,1],
-                voxels[l][:,2]] = img[voxels[l][:,0],
-                                      voxels[l][:,1],
-                                      voxels[l][:,2]].std()            
-    else:
-        raise ValueError("Unknown feature:"+feature)
-
-    return irtk.Image(res,img.get_header())
-
-def slic_std(img, size=300, compactness=10, sigma=2.0):
-    #img = img.saturate(0.01,0.9).rescale().astype("float32")
-    labels = slic( img.astype("float32").gaussianBlurring(sigma),
-                   size=size,
-                   compactness=compactness )
-    max_label = labels.max()
-    voxels = get_voxels(labels,max_label)
-    res = irtk.zeros(img.get_header(),dtype='float32')
-    img = img.rescale().astype('uint8')
-    for l in xrange(max_label+1):
-        if voxels[l].shape[0] == 0:
-            continue
-        values = img[voxels[l][:,0],
-                     voxels[l][:,1],
-                     voxels[l][:,2]]
-        vmax = values.max()
-        if vmax == 0:
-            continue
-        vmin = values.min()
-        if vmax == vmin:
-            continue
-        res[voxels[l][:,0],
-            voxels[l][:,1],
-            voxels[l][:,2]] = get_entropy(values)
-
-    return irtk.Image(res,img.get_header())
 
 if __name__ == "__main__":
 
@@ -217,13 +139,3 @@ if __name__ == "__main__":
     irtk.imwrite("distanceEDT.nii.gz",background_distance(img,metric="euclidean"))
 
     irtk.imwrite( "distanceGDT.nii.gz", background_distance(img,metric="geodesic"))
-
-    # irtk.imwrite( "slicEntropy.nii.gz", slic_feature( img,
-    #                                                   feature="entropy",
-    #                                                   size=float(img.shape[0]*img.shape[1]*img.shape[2])/500,
-    #                                                   compactness=10))
-                  
-    # irtk.imwrite( "slicSTD.nii.gz", slic_feature( img,
-    #                                               feature="std",
-    #                                               size=float(img.shape[0]*img.shape[1]*img.shape[2])/500,
-    #                                               compactness=10))

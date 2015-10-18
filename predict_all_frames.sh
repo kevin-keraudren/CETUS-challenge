@@ -3,9 +3,12 @@
 set -x
 set -e
 
-for i in {16..30}
+start=$1
+end=$2
+
+for i in $(seq $start $end)
 do
     patient_id=Patient${i}
-    python predict_all_frames.py $patient_id --forest forest_autocontextN315 \
+    python predict_all_frames.py $patient_id --forest forest_615 \
                                              --nb_autocontext 4 &
 done

@@ -91,3 +91,6 @@ auto/
 
 # emacs
 *~
+
+# Mac
+.DS_Store
